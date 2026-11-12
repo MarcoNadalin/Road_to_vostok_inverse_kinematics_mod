@@ -14,6 +14,7 @@ const REQUIRED_BONES := [
 ]
 
 var body_index := -1
+var weapon_root_indices: Array[int] = []
 # right arm bones
 var wrist_r_index := -1
 var shoulder_r_index := -1
@@ -39,6 +40,14 @@ func _ready() -> void:
 	if body_index == -1:
 		push_error("Could not find weapon body bone.")
 		return
+
+	# ensure weapon internals follow rig
+	weapon_root_indices.clear()
+	var weapon_prefix := skeleton.get_bone_name(body_index).trim_suffix("_Body") + "_"
+	for index in skeleton.get_bone_count():
+		if index != body_index and skeleton.get_bone_parent(index) == -1:
+			if skeleton.get_bone_name(index).begins_with(weapon_prefix):
+				weapon_root_indices.append(index)
 	
 	
 	# right arm bones
@@ -67,6 +76,15 @@ func apply_weapon_pose(target_in_skeleton: Transform3D) -> void:
 	#calculate new wrist position to stay with gun
 	var desired_wrist_r_pose = target_in_skeleton * current_right_grip
 	var desired_wrist_l_pose = target_in_skeleton * current_left_grip
+
+	var weapon_delta := target_in_skeleton * current_body_pose.affine_inverse()
+	var rotation_delta := weapon_delta.basis.orthonormalized().get_rotation_quaternion()
+	for index in weapon_root_indices:
+		# ensure weapon internals follow rig
+		var part_position := skeleton.get_bone_pose_position(index)
+		var part_rotation := skeleton.get_bone_pose_rotation(index)
+		skeleton.set_bone_pose_position(index, weapon_delta * part_position)
+		skeleton.set_bone_pose_rotation(index, (rotation_delta * part_rotation).normalized())
 	
 	skeleton.set_bone_global_pose(body_index, target_in_skeleton)
 	IK_TWO_BONE.solve(skeleton, shoulder_r_index, elbow_r_index, wrist_r_index, desired_wrist_r_pose)

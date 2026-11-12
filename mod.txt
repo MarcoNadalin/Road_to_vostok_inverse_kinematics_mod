@@ -1,0 +1,12 @@
+[mod]
+name="Inverse Kinematics Rig"
+id="inverse-kinematics-rig"
+version="0.2.0"
+author="Marco"
+priority=70
+
+[autoload]
+InverseKinematicsRig="res://mods/InverseKinematicsRig/Main.gd"
+
+[hooks]
+"res://Scripts/WeaponRig.gd"="_ready"
